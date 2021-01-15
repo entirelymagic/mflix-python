@@ -19,6 +19,13 @@ var bind = function bind(obj) {
 };
 Function.prototype.bind = Function.prototype.bind || bind ;
 
+requirejs.config({
+  map: {
+    "*": {
+      "typeahead": "jquery-typeahead"
+    }
+  }
+})
 
 requirejs([
     'jquery',
@@ -45,7 +52,8 @@ requirejs([
     'notebook/js/about',
     'notebook/js/searchandreplace',
     'notebook/js/clipboard',
-    'bidi/bidi'
+    'bidi/bidi',
+    'notebook/js/celltoolbarpresets/tags'
 ], function(
     $,
     contents_service,
