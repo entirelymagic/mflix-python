@@ -18,6 +18,7 @@ from pymongo.errors import DuplicateKeyError, OperationFailure
 from bson.objectid import ObjectId
 from bson.errors import InvalidId
 from pymongo.read_concern import ReadConcern
+from bson.json_util import  dumps
 
 
 def get_db():
@@ -78,7 +79,11 @@ def get_movies_by_country(countries):
         # Find movies matching the "countries" list, but only return the title
         # and _id. Do not include a limit in your own implementation, it is
         # included here to avoid sending 46000 documents down the wire.
-        return list(db.movies.find().limit(1))
+
+        query = {'countries': {'$in': countries}}
+        projection = {'title': 1}
+
+        return list(db.movies.find(query, projection))
 
     except Exception as e:
         return e
