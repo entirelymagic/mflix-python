@@ -3,7 +3,7 @@ import pymongo
 from bson.json_util import dumps
 
 
-uri = uri = "mongodb+srv://m220student:m220password@mflix.rdhe6.mongodb.net/test"
+uri = "mongodb+srv://m220student:m220password@mflix.rdhe6.mongodb.net/test"
 client = pymongo.MongoClient(uri)
 
 print(client.list_database_names())
@@ -25,18 +25,36 @@ one_random_movie = movies.find_one() # find_one do not return a cursor
 # cursor = movies.find({"cast": "Salma Hayek"}, {"title": 1, "_id": 0})
 # print(dumps(cursor, indent=2))
 
-cursor =movies.aggregate([
-    {
-        '$match': {
-            'countries': {
-                '$ne': "Null"
-            }
-        }
-    }, {
-        '$project': {
-            'title': 1,
-            '_id': 1
-        }
-    }
-])
-print(list(cursor))
+pipeline = [
+    {'$match': {'directors': "Sam Raimi"}},
+    {'$project': {'title': 1, '_id': 0, 'cast': 1}},
+    {'$count': 'num_movies'}
+]
+sorted_aggregation = movies.aggregate(pipeline)
+print(dumps(sorted_aggregation, indent=2))
+
+
+match = {'directors': "Sam Raimi"}
+project = {'title': 1, '_id': 0, 'cast': 1}
+skipped_cursor = movies.find(match, project).skip(12)
+print(dumps(skipped_cursor, indent=2))
+
+
+# Using Find method
+match = {'directors': "Sam Raimi"}
+project = {'title': 1, '_id': 0, 'cast': 1, 'year': 1}
+skipped_sorted_cursor = movies.find(match, project).sort('year', 1).skip(10)
+print(dumps(skipped_sorted_cursor, indent=2))
+
+
+# Using pipeline
+pipeline = [
+    {'$match': {'directors': 'Sam Raimi'}},
+    {'$project': {'_id': 0, 'year': 1, 'title': 1, 'cast': 1}},
+    {'$sort': {'year': 1}},
+    {'$skip': 10}
+]
+sorted_skipped_aggregation = movies.aggregate(pipeline)
+print(dumps(sorted_skipped_aggregation, indent=2))
+
+
