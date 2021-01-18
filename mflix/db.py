@@ -396,9 +396,10 @@ def get_user(email):
     """
     Given an email, returns a document from the `users` collection.
     """
-    # TODO: User Management
+    # TODO: User Management -completed retrieving User by email
     # Retrieve the user document corresponding with the user's email.
-    return db.users.find_one({ "some_field": "some_value" })
+
+    return db.users.find_one({"email": email})
 
 
 def add_user(name, email, hashedpw):
@@ -415,15 +416,14 @@ def add_user(name, email, hashedpw):
     """
 
     try:
-        # TODO: User Management
+        # TODO: User Management - adding the new user to the database - completed
         # Insert a user with the "name", "email", and "password" fields.
-        # TODO: Durable Writes
+        new_user = {'email': email, 'name': name, 'password': hashedpw}
+
+        # TODO: Durable Writes - completed
         # Use a more durable Write Concern for this operation.
-        db.users.insert_one({
-            "name": "mongo",
-            "email": "mongo@mongodb.com",
-            "password": "flibbertypazzle"
-        })
+        db.users.with_options(write_concern=WriteConcern(w=2)).insert_one(new_user)
+
         return {"success": True}
     except DuplicateKeyError:
         return {"error": "A user with the given email already exists."}
@@ -437,13 +437,11 @@ def login_user(email, jwt):
     In `sessions`, each user's email is stored in a field called "user_id".
     """
     try:
-        # TODO: User Management
+        # TODO: User Management - logging in - completed
         # Use an UPSERT statement to update the "jwt" field in the document,
         # matching the "user_id" field with the email passed to this function.
-        db.sessions.update_one(
-            { "some_field": "some_value" },
-            { "$set": { "some_other_field": "some_other_value" } }
-        )
+        db.sessions.update_one({"user_id": email}, {"$set": {"jwt": jwt}}, upsert=True)
+
         return {"success": True}
     except Exception as e:
         return {"error": e}
@@ -457,9 +455,10 @@ def logout_user(email):
     In `sessions`, each user's email is stored in a field called "user_id".
     """
     try:
-        # TODO: User Management
+        # TODO: User Management - deleting the user from the sessions collection - completed
         # Delete the document in the `sessions` collection matching the email.
-        db.sessions.delete_one({ "some_field": "some_value" })
+        db.sessions.delete_one({"user_id": email})
+
         return {"success": True}
     except Exception as e:
         return {"error": e}
