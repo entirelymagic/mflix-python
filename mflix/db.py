@@ -267,17 +267,35 @@ def get_movie(id):
         Embed the joined comments in a new field called "comments".
         """
 
-        # TODO: Get Comments
-        # Implement the required pipeline.
+        # TODO: Get Comments -done
+        # : Get Comments
+        # implement the required pipeline
         pipeline = [
             {
                 "$match": {
                     "_id": ObjectId(id)
                 }
+            },
+            {
+                "$lookup": {
+                    "from": 'comments',
+                    "let": { 'id': '$_id' },
+                    "pipeline": [
+                        { '$match':
+                            { '$expr': { '$eq': [ '$movie_id', '$$id' ] } }
+                        }
+                    ],
+                    "as": 'comments'
+                }
             }
         ]
 
         movie = db.movies.aggregate(pipeline).next()
+        movie["comments"] = sorted(
+            movie.get("comments", []),
+            key=lambda c: c.get("date"),
+            reverse=True
+        )
         return movie
 
     # TODO: Error Handling
