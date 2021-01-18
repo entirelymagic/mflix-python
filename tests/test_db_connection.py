@@ -29,7 +29,7 @@ def test_atlas_setup(client, config):
 @pytest.mark.connection
 def test_basic_movies(client):
     (actual, num_found) = get_movies({}, 0, 20)
-    assert num_found == 23530
+    assert num_found == 23539
     assert(len(list(actual))) == 20
 
 
