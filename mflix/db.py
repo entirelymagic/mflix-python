@@ -8,7 +8,6 @@ docstrings with a short explanation of the task.
 Look out for TODO markers for additional help. Good luck!
 """
 
-
 from flask import current_app, g
 from werkzeug.local import LocalProxy
 
@@ -18,7 +17,7 @@ from pymongo.errors import DuplicateKeyError, OperationFailure
 from bson.objectid import ObjectId
 from bson.errors import InvalidId
 from pymongo.read_concern import ReadConcern
-from bson.json_util import  dumps
+from bson.json_util import dumps
 
 
 def get_db():
@@ -29,7 +28,6 @@ def get_db():
     MFLIX_DB_URI = current_app.config["MFLIX_DB_URI"]
     MFLIX_DB_NAME = current_app.config["MFLIX_NS"]
     if db is None:
-
         """
         Ticket: Connection Pooling
 
@@ -45,11 +43,11 @@ def get_db():
         """
 
         db = g._database = MongoClient(
-        MFLIX_DB_URI,
-        # TODO: Connection Pooling
-        # Set the maximum connection pool size to 50 active connections.
-        # TODO: Timeouts
-        # Set the write timeout limit to 2500 milliseconds.
+            MFLIX_DB_URI,
+            # TODO: Connection Pooling
+            # Set the maximum connection pool size to 50 active connections.
+            # TODO: Timeouts
+            # Set the write timeout limit to 2500 milliseconds.
         )[MFLIX_DB_NAME]
     return db
 
@@ -267,12 +265,24 @@ def get_movie(id):
         Embed the joined comments in a new field called "comments".
         """
 
-        # TODO: Get Comments
+        # TODO: Get Comments - completed
         # Implement the required pipeline.
         pipeline = [
             {
                 "$match": {
                     "_id": ObjectId(id)
+                }
+            },
+            {
+                "$lookup": {
+                    "from": 'comments',
+                    "let": {'id': '$_id'},
+                    "pipeline": [
+                        {'$match':
+                             {'$expr': {'$eq': ['$movie_id', '$$id']}}
+                         }
+                    ],
+                    "as": 'comments'
                 }
             }
         ]
@@ -322,6 +332,7 @@ to better understand the task.
 
 
 def add_comment(movie_id, user, comment, date):
+    MOVIE_COMENT_CACHE_LIMIT = 10
     """
     Inserts a comment into the comments collection, with the following fields:
 
@@ -335,7 +346,14 @@ def add_comment(movie_id, user, comment, date):
     """
     # TODO: Create/Update Comments
     # Construct the comment document to be inserted into MongoDB.
-    comment_doc = { "some_field": "some_value" }
+
+    comment_doc = {
+        "name": user.name,
+        "email": user.email,
+        "movie_id": ObjectId(movie_id),
+        "text": comment,
+        "date": date
+    }
     return db.comments.insert_one(comment_doc)
 
 
@@ -349,10 +367,11 @@ def update_comment(comment_id, user_email, text, date):
     # Use the user_email and comment_id to select the proper comment, then
     # update the "text" and "date" of the selected comment.
     response = db.comments.update_one(
-        { "some_field": "some_value" },
-        { "$set": { "some_other_field": "some_other_value" } }
+        # we used the comment_id and user_email to verify that the user has
+        # permission to edit this comment
+        {"_id": ObjectId(comment_id), "email": user_email},
+        {"$set": {"text": text, "date": date}}
     )
-
     return response
 
 
@@ -371,7 +390,7 @@ def delete_comment(comment_id, user_email):
 
     # TODO: Delete Comments
     # Use the user_email and comment_id to delete the proper comment.
-    response = db.comments.delete_one( { "_id": ObjectId(comment_id) } )
+    response = db.comments.delete_one({"_id": ObjectId(comment_id), "email": user_email})
     return response
 
 
@@ -473,7 +492,7 @@ def get_user_session(email):
     try:
         # TODO: User Management
         # Retrieve the session document corresponding with the user's email.
-        return db.sessions.find_one({ "some_field": "some_value" })
+        return db.sessions.find_one({"some_field": "some_value"})
     except Exception as e:
         return {"error": e}
 
@@ -486,8 +505,8 @@ def delete_user(email):
     try:
         # TODO: User Management
         # Delete the corresponding documents from `users` and `sessions`.
-        db.sessions.delete_one({ "some_field": "some_value" })
-        db.users.delete_one({ "some_field": "some_value" })
+        db.sessions.delete_one({"some_field": "some_value"})
+        db.users.delete_one({"some_field": "some_value"})
         if get_user(email) is None:
             return {"success": True}
         else:
@@ -514,8 +533,8 @@ def update_prefs(email, prefs):
         # TODO: User preferences
         # Use the data in "prefs" to update the user's preferences.
         response = db.users.update_one(
-            { "some_field": "some_value" },
-            { "$set": { "some_other_field": "some_other_value" } }
+            {"email": email},
+            {"$set": {"preferences": prefs}}
         )
         if response.matched_count == 0:
             return {'error': 'no user found'}
@@ -543,7 +562,7 @@ def most_active_commenters():
     # Return the 20 users who have commented the most on MFlix.
     pipeline = []
 
-    rc = db.comments.read_concern # you may want to change this read concern!
+    rc = db.comments.read_concern  # you may want to change this read concern!
     comments = db.comments.with_options(read_concern=rc)
     result = comments.aggregate(pipeline)
     return list(result)
